@@ -38,7 +38,7 @@ def main():
                                      args.influxdbpassword,
                                      args.influxdbdatabase)
     log.debug("Using influxdb: %s:%s",
-              influxdb_client.host, influxdb_client.port)
+              args.influxdbhost, args.influxdbport)
     create_database(influxdb_client, args.influxdbdatabase)
     init_exporting(args.interval, url, influxdb_client)
 
