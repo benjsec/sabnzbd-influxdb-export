@@ -16,20 +16,29 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 url_format = '{0}://{1}:{2}/sabnzbd/api?apikey={3}&output=json'
 
-logging.getLogger()
+FORMAT = '%(asctime)s %(levelname)-8s: %(message)s'
+logging.basicConfig(format=FORMAT, level=logging.INFO)
+log = logging.getLogger()
 
 
 def main():
     args = parse_args()
+    if args.v or os.environ.get('DEBUG'):
+        log.setLogLevel(logging.DEBUG)
+    elif args.q:
+        log.setLevel(logging.WARNING)
     url = get_url(args.sabnzbdwebprotocol,
                   args.sabnzbdhost,
                   args.sabnzbdport,
                   args.sabnzbdapikey)
+    log.debug("Using sabnzbd url: %s", url)
     influxdb_client = InfluxDBClient(args.influxdbhost,
                                      args.influxdbport,
                                      args.influxdbuser,
                                      args.influxdbpassword,
                                      args.influxdbdatabase)
+    log.debug("Using influxdb: %s:%s",
+              influxdb_client.host, influxdb_client.port)
     create_database(influxdb_client, args.influxdbdatabase)
     init_exporting(args.interval, url, influxdb_client)
 
@@ -77,76 +86,96 @@ def parse_args():
         '--influxdbdatabase', type=str, required=False,
         default=os.environ.get('INFLUXDB_DATABASE', 'sabnzbd'),
         help='InfluxDB database')
+    loggroup = parser.add_mutually_exclusive_group()
+    loggroup.add_argument(
+        '-v', '--verbose', action='store_true',
+        help='Enable verbose (debug) logging.')
+    loggroup.add_argument(
+        '-q', '--quiet', action='store_true',
+        help='Only show log messages at warning level and higher.')
     return parser.parse_args()
 
 
 def qstatus(url, influxdb_client):
+    log.debug("Getting queue status")
     try:
         data = requests.get(
             '{0}{1}'.format(url, '&mode=queue'), verify=False).json()
+    except Exception:
+        log.exeption("Error getting queue status from sabnzbd.")
 
-        if data:
-            queue = data['queue']
-            speed = float(queue['kbpersec'])
-            total_mb_left = float(queue['mbleft'])  # mbleft?
-            total_jobs = float(queue['noofslots'])
-            status = queue['status']
+    if not data:
+        log.debug("No data returned.")
+        return
 
-            json_body = [
-                {
-                    "measurement": "qstatus",
-                    "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
-                    "fields": {
-                        "speed": speed,
-                        "total_mb_left": total_mb_left,
-                        "total_jobs": total_jobs,
-                        "status": status
-                    }
-                }]
-            influxdb_client.write_points(json_body)
+    queue = data['queue']
+    speed = float(queue['kbpersec'])
+    total_mb_left = float(queue['mbleft'])  # mbleft?
+    total_jobs = float(queue['noofslots'])
+    status = queue['status']
 
-    except Exception as e:
-        print str(e)
-        pass
+    json_body = [
+        {
+            "measurement": "qstatus",
+            "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+            "fields": {
+                "speed": speed,
+                "total_mb_left": total_mb_left,
+                "total_jobs": total_jobs,
+                "status": status
+            }
+        }]
+    try:
+        influxdb_client.write_points(json_body)
+    except Exception:
+        log.exception("Error posting queue status to InfluxDB")
 
 
 def server_stats(url, influxdb_client):
+    log.debug("Getting server status.")
     try:
         data = requests.get(
             '{0}{1}'.format(url, '&mode=server_stats'), verify=False).json()
+    except Exception:
+        log.exception("Error getting server status from sabnzbd.")
 
-        if data:
-            total = long(data['total'])
-            total_month = long(data['month'])
-            total_week = long(data['week'])
-            total_day = long(data['day'])
+    if not data:
+        log.debug("No data received for server status.")
+        return
 
-            json_body = [
-                {
-                    "measurement": "server_stats",
-                    "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
-                    "fields": {
-                        "total": total,
-                        "total_month": total_month,
-                        "total_week": total_week,
-                        "total_day": total_day
-                    }
-                }]
-            influxdb_client.write_points(json_body)
+    total = long(data['total'])
+    total_month = long(data['month'])
+    total_week = long(data['week'])
+    total_day = long(data['day'])
 
-    except Exception as e:
-        print str(e)
-        pass
+    json_body = [
+        {
+            "measurement": "server_stats",
+            "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+            "fields": {
+                "total": total,
+                "total_month": total_month,
+                "total_week": total_week,
+                "total_day": total_day
+            }
+        }]
+
+    try:
+        influxdb_client.write_points(json_body)
+    except Exception:
+        log.exception("Error posting server status to InfluxDB.")
 
 
 def create_database(influxdb_client, database):
+    log.debug("Creating influxdb database %s", database)
     try:
         influxdb_client.query('CREATE DATABASE {0}'.format(database))
     except Exception:
-        pass
+        log.exeception("Error creating database in InfluxDB")
 
 
 def init_exporting(interval, url, influxdb_client):
+    log.info("Starting monitoring with interval of %ss", interval)
     while True:
         queuestatus = Process(target=qstatus, args=(url, influxdb_client,))
         queuestatus.start()
