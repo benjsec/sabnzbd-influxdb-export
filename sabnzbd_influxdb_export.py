@@ -107,24 +107,30 @@ def qstatus(url, influxdb_client):
     if not data:
         log.debug("No data returned.")
         return
+    log.debug("Data from sabnzbd: %s", data)
 
     queue = data['queue']
-    speed = float(queue['kbpersec'])
-    total_mb_left = float(queue['mbleft'])  # mbleft?
-    total_jobs = float(queue['noofslots'])
-    status = queue['status']
 
-    json_body = [
-        {
-            "measurement": "qstatus",
-            "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
-            "fields": {
-                "speed": speed,
-                "total_mb_left": total_mb_left,
-                "total_jobs": total_jobs,
-                "status": status
-            }
-        }]
+    json_body = [{
+        "measurement": "qstatus",
+        "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+        "fields": {
+            "speed": float(queue["kbpersec"]),
+            "total_mb_left": float(queue["mbleft"]),
+            "total_jobs": float(queue["noofslots"]),
+            "status": queue.get("status"),
+            "timeleft": queue.get("timeleft"),
+            "diskspace1": queue.get("diskspace1"),
+            "diskspace2": queue.get("diskspace2"),
+            "diskspacetotal1": queue.get("diskspacetotal1"),
+            "diskspacetotal2": queue.get("diskspacetotal2"),
+            "diskspace1_norm": queue.get("diskspace1_norm"),
+            "diskspace2_norm": queue.get("diskspace2_norm"),
+            "loadavg": queue.get("loadavg"),
+            "have_warnings": queue.get("have_warnings"),
+            "eta": queue.get("eta"),
+        }
+    }]
     try:
         influxdb_client.write_points(json_body)
     except Exception:
