@@ -1,16 +1,21 @@
 #!/usr/bin/python
 
+import argparse  # for arg parsing...
+import logging
+import os
 import time
-import argparse # for arg parsing...
-import json # for parsing json
+from datetime import datetime  # for obtaining and formattying time
+from multiprocessing import Process
+
+from influxdb import InfluxDBClient  # via apt-get install python-influxdb
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
-from multiprocessing import Process
-from datetime import datetime # for obtaining the curren time and formatting it
-from influxdb import InfluxDBClient # via apt-get install python-influxdb
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning) # suppress unverified cert warnings
 
 url_format = '{0}://{1}:{2}/sabnzbd/api?apikey={3}&output=json'
+
+logging.getLogger()
+
 
 def main():
     args = parse_args()
@@ -19,20 +24,53 @@ def main():
     create_database(influxdb_client, args.influxdbdatabase)
     init_exporting(args.interval, url, influxdb_client)
 
+
 def parse_args():
-    parser = argparse.ArgumentParser(description='Export SABnzbd data to influxdb')
-    parser.add_argument('--interval', type=int, required=False, default=5, help='Interval of export in seconds')
-    parser.add_argument('--sabnzbdwebprotocol', type=str, required=False, default="http", help='SABnzbd web protocol (http)')
-    parser.add_argument('--sabnzbdhost', type=str, required=False, default="localhost", help='SABnzbd host (test.com))')
-    parser.add_argument('--sabnzbdport', type=int, required=False, default=8080, help='SABnzbd port')
-    parser.add_argument('--sabnzbdapikey', type=str, required=True, default="", help='SABnzbd API key')
-    parser.add_argument('--influxdbhost', type=str, required=False, default="localhost", help='InfluxDB host')
-    parser.add_argument('--influxdbport', type=int, required=False, default=8086, help='InfluxDB port')
-    parser.add_argument('--influxdbuser', type=str, required=False, default="", help='InfluxDB user')
-    parser.add_argument('--influxdbpassword', type=str, required=False, default="", help='InfluxDB password')
-    parser.add_argument('--influxdbdatabase', type=str, required=False, default="sabnzbd", help='InfluxDB database')
+    parser = argparse.ArgumentParser(
+        description='Export SABnzbd data to influxdb')
+    parser.add_argument(
+        '--interval', type=int, required=False,
+        default=os.environ.get('INTERVAL', 5),
+        help='Interval of export in seconds')
+    parser.add_argument(
+        '--sabnzbdwebprotocol', type=str, required=False,
+        default=os.environ.get('SABNZBD_PROTOCOL', 'http'),
+        help='SABnzbd web protocol (http)')
+    parser.add_argument(
+        '--sabnzbdhost', type=str, required=False,
+        default=os.environ.get('SABNZBD_HOST', 'localhost'),
+        help='SABnzbd host (e.g. test.com))')
+    parser.add_argument(
+        '--sabnzbdport', type=int, required=False,
+        default=os.environ.get('SABNZBD_PORT', 8080),
+        help='SABnzbd port')
+    parser.add_argument(
+        '--sabnzbdapikey', type=str, required=True,
+        default=os.environ.get('SABNZBD_API_KEY', ''),
+        help='SABnzbd API key')
+    parser.add_argument(
+        '--influxdbhost', type=str, required=False,
+        default=os.environ.get('INFLUXDB_HOST', 'localhost'),
+        help='InfluxDB host')
+    parser.add_argument(
+        '--influxdbport', type=int, required=False,
+        default=os.environ.get('INFLUXDB_PORT', 8086),
+        help='InfluxDB port')
+    parser.add_argument(
+        '--influxdbuser', type=str, required=False,
+        default=os.environ.get('INFLUXDB_USER', ''),
+        help='InfluxDB user')
+    parser.add_argument(
+        '--influxdbpassword', type=str, required=False,
+        default=os.environ.get('INFLUXDB_PASSWORD', ''),
+        help='InfluxDB password')
+    parser.add_argument(
+        '--influxdbdatabase', type=str, required=False,
+        default=os.environ.get('INFLUXDB_DATABASE', 'sabnzbd'),
+        help='InfluxDB database')
     return parser.parse_args()
-    
+
+
 def qstatus(url,influxdb_client):
     try:
         data = requests.get('{0}{1}'.format(url, '&mode=queue'), verify=False).json()
