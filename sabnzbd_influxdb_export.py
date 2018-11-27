@@ -8,9 +8,11 @@ from datetime import datetime  # for obtaining and formattying time
 from multiprocessing import Process
 
 from influxdb import InfluxDBClient  # via apt-get install python-influxdb
+
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning) # suppress unverified cert warnings
+# suppress unverified cert warnings
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 url_format = '{0}://{1}:{2}/sabnzbd/api?apikey={3}&output=json'
 
@@ -19,8 +21,15 @@ logging.getLogger()
 
 def main():
     args = parse_args()
-    url = get_url(args.sabnzbdwebprotocol, args.sabnzbdhost, args.sabnzbdport, args.sabnzbdapikey)
-    influxdb_client = InfluxDBClient(args.influxdbhost, args.influxdbport, args.influxdbuser, args.influxdbpassword, args.influxdbdatabase)
+    url = get_url(args.sabnzbdwebprotocol,
+                  args.sabnzbdhost,
+                  args.sabnzbdport,
+                  args.sabnzbdapikey)
+    influxdb_client = InfluxDBClient(args.influxdbhost,
+                                     args.influxdbport,
+                                     args.influxdbuser,
+                                     args.influxdbpassword,
+                                     args.influxdbdatabase)
     create_database(influxdb_client, args.influxdbdatabase)
     init_exporting(args.interval, url, influxdb_client)
 
@@ -71,37 +80,40 @@ def parse_args():
     return parser.parse_args()
 
 
-def qstatus(url,influxdb_client):
+def qstatus(url, influxdb_client):
     try:
-        data = requests.get('{0}{1}'.format(url, '&mode=queue'), verify=False).json()
+        data = requests.get(
+            '{0}{1}'.format(url, '&mode=queue'), verify=False).json()
 
         if data:
             queue = data['queue']
             speed = float(queue['kbpersec'])
-            total_mb_left = float(queue['mbleft']) # mbleft?
+            total_mb_left = float(queue['mbleft'])  # mbleft?
             total_jobs = float(queue['noofslots'])
             status = queue['status']
-            
+
             json_body = [
-            {
-                "measurement": "qstatus",
-                "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
-                "fields" : {
-                    "speed": speed,
-                    "total_mb_left": total_mb_left,
-                    "total_jobs": total_jobs,
-                    "status": status
-                }
-            }]
+                {
+                    "measurement": "qstatus",
+                    "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    "fields": {
+                        "speed": speed,
+                        "total_mb_left": total_mb_left,
+                        "total_jobs": total_jobs,
+                        "status": status
+                    }
+                }]
             influxdb_client.write_points(json_body)
-                
+
     except Exception as e:
         print str(e)
         pass
 
-def server_stats(url,influxdb_client):
+
+def server_stats(url, influxdb_client):
     try:
-        data = requests.get('{0}{1}'.format(url, '&mode=server_stats'), verify=False).json()
+        data = requests.get(
+            '{0}{1}'.format(url, '&mode=server_stats'), verify=False).json()
 
         if data:
             total = long(data['total'])
@@ -110,21 +122,22 @@ def server_stats(url,influxdb_client):
             total_day = long(data['day'])
 
             json_body = [
-            {
-                "measurement": "server_stats",
-                "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
-                "fields" : {
-                    "total": total,
-                    "total_month": total_month,
-                    "total_week": total_week,
-                    "total_day": total_day
-                }
-            }]
+                {
+                    "measurement": "server_stats",
+                    "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    "fields": {
+                        "total": total,
+                        "total_month": total_month,
+                        "total_week": total_week,
+                        "total_day": total_day
+                    }
+                }]
             influxdb_client.write_points(json_body)
-            
+
     except Exception as e:
         print str(e)
         pass
+
 
 def create_database(influxdb_client, database):
     try:
@@ -132,18 +145,22 @@ def create_database(influxdb_client, database):
     except Exception:
         pass
 
+
 def init_exporting(interval, url, influxdb_client):
     while True:
-        queuestatus = Process(target=qstatus, args=(url,influxdb_client,))
+        queuestatus = Process(target=qstatus, args=(url, influxdb_client,))
         queuestatus.start()
 
-        serverstats = Process(target=server_stats, args=(url,influxdb_client,))
+        serverstats = Process(
+            target=server_stats, args=(url, influxdb_client,))
         serverstats.start()
 
         time.sleep(interval)
 
-def get_url(protocol,host,port,apikey):
-    return url_format.format(protocol,host,port,apikey)
+
+def get_url(protocol, host, port, apikey):
+    return url_format.format(protocol, host, port, apikey)
+
 
 if __name__ == '__main__':
     main()
