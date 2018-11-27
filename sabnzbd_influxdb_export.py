@@ -24,7 +24,7 @@ log = logging.getLogger()
 def main():
     args = parse_args()
     if args.verbose or os.environ.get('DEBUG'):
-        log.setLogLevel(logging.DEBUG)
+        log.setLevel(logging.DEBUG)
     elif args.quiet:
         log.setLevel(logging.WARNING)
     url = get_url(args.sabnzbdwebprotocol,
