@@ -63,7 +63,7 @@ def parse_args():
         default=os.environ.get('SABNZBD_PORT', 8080),
         help='SABnzbd port')
     parser.add_argument(
-        '--sabnzbdapikey', type=str, required=True,
+        '--sabnzbdapikey', type=str, required=False,
         default=os.environ.get('SABNZBD_API_KEY', ''),
         help='SABnzbd API key')
     parser.add_argument(
