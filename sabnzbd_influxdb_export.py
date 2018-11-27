@@ -119,7 +119,7 @@ def qstatus(url, influxdb_client):
             "total_mb_left": float(queue["mbleft"]),
             "total_jobs": float(queue["noofslots"]),
             "status": queue.get("status"),
-            "timeleft": float(queue.get("timeleft")),
+            "timeleft": queue.get("timeleft"),
             "diskspace1": float(queue.get("diskspace1")),
             "diskspace2": float(queue.get("diskspace2")),
             "diskspacetotal1": float(queue.get("diskspacetotal1")),
