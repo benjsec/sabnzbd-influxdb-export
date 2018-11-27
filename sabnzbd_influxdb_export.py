@@ -117,6 +117,8 @@ def qstatus(url, influxdb_client):
         "fields": {
             "speed": float(queue["kbpersec"]),
             "total_mb_left": float(queue["mbleft"]),
+            "speedlimit": float(queue["speedlimit"]),
+            "speedlimit_abs": float(queue["speedlimit_abs"]),
             "total_jobs": float(queue["noofslots"]),
             "status": queue.get("status"),
             "timeleft": queue.get("timeleft"),
@@ -127,8 +129,8 @@ def qstatus(url, influxdb_client):
             "diskspace1_norm": queue.get("diskspace1_norm"),
             "diskspace2_norm": queue.get("diskspace2_norm"),
             "loadavg_1m": float(queue.get("loadavg").split('|')[0]),
-            "loadavg_5m": float(queue.get("loadavg").split('|')[0]),
-            "loadavg_15m": float(queue.get("loadavg").split('|')[0]),
+            "loadavg_5m": float(queue.get("loadavg").split('|')[1]),
+            "loadavg_15m": float(queue.get("loadavg").split('|')[2]),
             "have_warnings": queue.get("have_warnings"),
             "eta": queue.get("eta"),
         }
