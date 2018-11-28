@@ -110,6 +110,10 @@ def qstatus(url, influxdb_client):
     log.debug("Data from sabnzbd: %s", data)
 
     queue = data['queue']
+    try:
+        speedlimit_abs = float(queue["speedlimit_abs"])
+    except ValueError:
+        speedlimit_abs = 0.0
 
     json_body = [{
         "measurement": "qstatus",
@@ -118,7 +122,7 @@ def qstatus(url, influxdb_client):
             "speed": float(queue["kbpersec"]),
             "total_mb_left": float(queue["mbleft"]),
             "speedlimit": float(queue["speedlimit"]),
-            "speedlimit_abs": float(queue["speedlimit_abs"]),
+            "speedlimit_abs": speedlimit_abs,
             "total_jobs": float(queue["noofslots"]),
             "status": queue.get("status"),
             "timeleft": queue.get("timeleft"),
