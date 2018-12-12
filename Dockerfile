@@ -1,7 +1,7 @@
 FROM alpine:latest
 
 # Install Packages
-RUN	apk update && \
+RUN apk update && \
     apk upgrade && \
     apk add python py-requests py-pip && \
     pip install influxdb pytimeparse
