@@ -140,7 +140,7 @@ def qstatus(url, influxdb_client):
             "loadavg_15m": float(queue.get("loadavg").split('|')[2]),
             "have_warnings": queue.get("have_warnings"),
             "eta": queue.get("eta"),
-            "eta_timestamp": seconds_left + time.gmtime()
+            "eta_timestamp": seconds_left + time.time()
         }
     }]
     try:
