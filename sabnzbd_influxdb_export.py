@@ -8,6 +8,7 @@ from datetime import datetime  # for obtaining and formattying time
 from multiprocessing import Process
 
 from influxdb import InfluxDBClient  # via apt-get install python-influxdb
+import pytimeparse
 
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -103,7 +104,6 @@ def qstatus(url, influxdb_client):
             '{0}{1}'.format(url, '&mode=queue'), verify=False).json()
     except Exception:
         log.exeption("Error getting queue status from sabnzbd.")
-
     if not data:
         log.debug("No data returned.")
         return
@@ -126,6 +126,7 @@ def qstatus(url, influxdb_client):
             "total_jobs": float(queue["noofslots"]),
             "status": queue.get("status"),
             "timeleft": queue.get("timeleft"),
+            "seconds_left": pytimeparse.parse(queue.get("timeleft")),
             "diskspace1": float(queue.get("diskspace1")),
             "diskspace2": float(queue.get("diskspace2")),
             "diskspacetotal1": float(queue.get("diskspacetotal1")),

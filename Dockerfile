@@ -1,17 +1,14 @@
-FROM	alpine:latest
+FROM alpine:latest
 
 # Install Packages
-RUN	\
-  apk update && \
-  apk upgrade && \
-	apk add python py-requests py-pip && \
-	pip install influxdb
+RUN	apk update && \
+    apk upgrade && \
+    apk add python py-requests py-pip && \
+    pip install influxdb pytimeparse
 
 # cleanup
-RUN \
- apk del --purge && \
- rm -rf \
-	/root/.cache
+RUN apk del --purge && \
+    rm -rf /root/.cache
 
 # add local files
 COPY . /root/
