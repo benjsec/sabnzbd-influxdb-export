@@ -115,6 +115,8 @@ def qstatus(url, influxdb_client):
     except ValueError:
         speedlimit_abs = 0.0
 
+    seconds_left = pytimeparse.parse(queue.get("timeleft"))
+
     json_body = [{
         "measurement": "qstatus",
         "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
@@ -126,7 +128,7 @@ def qstatus(url, influxdb_client):
             "total_jobs": float(queue["noofslots"]),
             "status": queue.get("status"),
             "timeleft": queue.get("timeleft"),
-            "seconds_left": pytimeparse.parse(queue.get("timeleft")),
+            "seconds_left": seconds_left,
             "diskspace1": float(queue.get("diskspace1")),
             "diskspace2": float(queue.get("diskspace2")),
             "diskspacetotal1": float(queue.get("diskspacetotal1")),
@@ -138,6 +140,7 @@ def qstatus(url, influxdb_client):
             "loadavg_15m": float(queue.get("loadavg").split('|')[2]),
             "have_warnings": queue.get("have_warnings"),
             "eta": queue.get("eta"),
+            "eta_timestamp": seconds_left + time.gmtime()
         }
     }]
     try:
