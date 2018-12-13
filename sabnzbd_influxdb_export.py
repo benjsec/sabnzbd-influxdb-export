@@ -117,7 +117,7 @@ def qstatus(url, influxdb_client):
 
     seconds_left = pytimeparse.parse(queue.get("timeleft"))
 
-    json_body = [{
+    json_body = {
         "measurement": "qstatus",
         "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
         "fields": {
@@ -127,8 +127,6 @@ def qstatus(url, influxdb_client):
             "speedlimit_abs": speedlimit_abs,
             "total_jobs": float(queue["noofslots"]),
             "status": queue.get("status"),
-            "timeleft": queue.get("timeleft"),
-            "seconds_left": seconds_left,
             "diskspace1": float(queue.get("diskspace1")),
             "diskspace2": float(queue.get("diskspace2")),
             "diskspacetotal1": float(queue.get("diskspacetotal1")),
@@ -139,12 +137,19 @@ def qstatus(url, influxdb_client):
             "loadavg_5m": float(queue.get("loadavg").split('|')[1]),
             "loadavg_15m": float(queue.get("loadavg").split('|')[2]),
             "have_warnings": queue.get("have_warnings"),
+        }
+    }
+
+    if not queue.get('paused'):
+        json_body["fields"].update({
+            "timeleft": queue.get("timeleft"),
+            "seconds_left": seconds_left,
             "eta": queue.get("eta"),
             "eta_timestamp": 1000 * (seconds_left + time.time())
-        }
-    }]
+        })
+
     try:
-        influxdb_client.write_points(json_body)
+        influxdb_client.write_points([json_body])
     except Exception:
         log.exception("Error posting queue status to InfluxDB")
 
