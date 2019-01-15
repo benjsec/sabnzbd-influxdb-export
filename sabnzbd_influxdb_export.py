@@ -194,7 +194,7 @@ def create_database(influxdb_client, database):
     try:
         influxdb_client.query('CREATE DATABASE {0}'.format(database))
     except Exception:
-        log.exeception("Error creating database in InfluxDB")
+        log.exception("Error creating database in InfluxDB")
 
 
 def init_exporting(interval, url, influxdb_client):
