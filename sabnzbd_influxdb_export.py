@@ -103,7 +103,8 @@ def qstatus(url, influxdb_client):
         data = requests.get(
             '{0}{1}'.format(url, '&mode=queue'), verify=False).json()
     except Exception:
-        log.exeption("Error getting queue status from sabnzbd.")
+        log.exception("Error getting queue status from sabnzbd.")
+        return
     if not data:
         log.debug("No data returned.")
         return
